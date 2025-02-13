@@ -35,8 +35,14 @@ jobs:
             sudo apt-get update -y || { echo "Failed to update package index after adding Docker repo"; exit 1; }
             sudo apt-get install -y docker-ce docker-ce-cli containerd.io || { echo "Failed to install Docker"; exit 1; }
 
+            # Start Docker service (if not already running)
+            sudo systemctl start docker || { echo "Failed to start Docker service"; exit 1; }
+
             # Add the SSH user to the Docker group
             sudo usermod -aG docker ${{ secrets.SSH_USERNAME }} || { echo "Failed to add user to Docker group"; exit 1; }
+
+            # Ensure Docker group changes take effect
+            newgrp docker || { echo "Failed to switch to Docker group"; exit 1; }
 
             # Install Docker Compose
             sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose || { echo "Failed to download Docker Compose"; exit 1; }
