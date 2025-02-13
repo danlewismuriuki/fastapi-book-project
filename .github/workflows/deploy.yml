@@ -54,6 +54,9 @@ jobs:
               echo "Directory already exists. Pulling latest changes..."
               cd fastapi-book-project || { echo "Failed to navigate to project directory"; exit 1; }
 
+              # Remove untracked files to avoid conflicts
+              git clean -fd || { echo "Failed to clean untracked files"; exit 1; }
+
               # Stash local changes to avoid conflicts
               git stash || { echo "Failed to stash local changes"; exit 1; }
 
