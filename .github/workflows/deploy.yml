@@ -1,11 +1,13 @@
----
 name: CD Pipeline
-"on":
+
+on:
   push:
     branches: [main]
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -17,32 +19,36 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            # Debugging: Print environment details
+            echo "Running on host: $(hostname)"
+            echo "Current user: $(whoami)"
+
             # Update package index and install dependencies
-            sudo apt-get update -y
-            sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+            sudo apt-get update -y || { echo "Failed to update package index"; exit 1; }
+            sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common || { echo "Failed to install dependencies"; exit 1; }
 
             # Add Docker's official GPG key
-            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-            sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - || { echo "Failed to add Docker GPG key"; exit 1; }
+            sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" || { echo "Failed to add Docker repository"; exit 1; }
 
             # Install Docker
-            sudo apt-get update -y
-            sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+            sudo apt-get update -y || { echo "Failed to update package index after adding Docker repo"; exit 1; }
+            sudo apt-get install -y docker-ce docker-ce-cli containerd.io || { echo "Failed to install Docker"; exit 1; }
 
             # Add the SSH user to the Docker group
-            sudo usermod -aG docker ${{ secrets.SSH_USERNAME }}
+            sudo usermod -aG docker ${{ secrets.SSH_USERNAME }} || { echo "Failed to add user to Docker group"; exit 1; }
 
             # Install Docker Compose
-            sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-            sudo chmod +x /usr/local/bin/docker-compose
+            sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose || { echo "Failed to download Docker Compose"; exit 1; }
+            sudo chmod +x /usr/local/bin/docker-compose || { echo "Failed to set Docker Compose permissions"; exit 1; }
 
             # Verify installations
-            docker --version
-            docker-compose --version
+            docker --version || { echo "Docker is not installed or not found"; exit 1; }
+            docker-compose --version || { echo "Docker Compose is not installed or not found"; exit 1; }
 
             # Navigate to the project directory and deploy
-            cd /home/ubuntu/
-            git clone https://github.com/danlewismuriuki/fastapi-book-project.git
-            cd fastapi-book-project/
-            git pull
-            docker-compose up -d --build
+            cd /home/ubuntu || { echo "Failed to navigate to /home/ubuntu"; exit 1; }
+            git clone https://github.com/danlewismuriuki/fastapi-book-project.git || { echo "Git clone failed"; exit 1; }
+            cd fastapi-book-project || { echo "Failed to navigate to project directory"; exit 1; }
+            git pull || { echo "Git pull failed"; exit 1; }
+            docker-compose up -d --build || { echo "Docker Compose deployment failed"; exit 1; }
