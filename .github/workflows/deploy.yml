@@ -48,7 +48,17 @@ jobs:
 
             # Navigate to the project directory and deploy
             cd /home/ubuntu || { echo "Failed to navigate to /home/ubuntu"; exit 1; }
-            git clone https://github.com/danlewismuriuki/fastapi-book-project.git || { echo "Git clone failed"; exit 1; }
-            cd fastapi-book-project || { echo "Failed to navigate to project directory"; exit 1; }
-            git pull || { echo "Git pull failed"; exit 1; }
+
+            # Check if the directory exists
+            if [ -d "fastapi-book-project" ]; then
+              echo "Directory already exists. Pulling latest changes..."
+              cd fastapi-book-project || { echo "Failed to navigate to project directory"; exit 1; }
+              git pull || { echo "Git pull failed"; exit 1; }
+            else
+              echo "Directory does not exist. Cloning repository..."
+              git clone https://github.com/danlewismuriuki/fastapi-book-project.git || { echo "Git clone failed"; exit 1; }
+              cd fastapi-book-project || { echo "Failed to navigate to project directory"; exit 1; }
+            fi
+
+            # Deploy using docker-compose
             docker-compose up -d --build || { echo "Docker Compose deployment failed"; exit 1; }
